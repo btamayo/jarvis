@@ -1,8 +1,10 @@
 language: node_js
 node_js:
-  - "8"
-
+- '8'
 cache:
   yarn: true
   directories:
-    - "node_modules"
+  - node_modules
+env:
+  global:
+    secure: QgDxxEZS0ZkiVHieZuPNg6IfpGSWBk9MjzFuN0GlogR+iYdDtw4eOBY5GVx9yynJFWliI6hGULDEgINoUSpU9WKAOVSJ8XdoKoxlitP5gYi5eBce3bWvhquZxU3J3ZcUlpMkOE/mszewn22ewUcN9ql4jmdCJSc4C3YM0rbz9HLJ3nelameci5Ask1M6j1vV25Z833wcgK6KCNTn8ZH1iaL01g8mMsJOUhe8uZ4JtW1B2A6w6xJbEvPK7fFArG2+tWR311/Ik5vUsvUom9A0mRt90uzEnniOGEGRmAooXUHU+YHXqgs7rEOOrUDqg4Ijp1IsytUGZJe7WHHgWwO8OKJBoCrloVQu734CNcfJaR2NSqjK0aqCYBSDSeOd20ZD0EBddmX9hflBdOAjBMS9SrGWZ09mWw/1tsyH9ZKDggU2OvPYApMU29lFA+/hil3ML7stOXVTH/nR2CZ+A2jeUpl7AWTtTjS7SG1eSTmpWS0aR9rrPyc9bsB3PEP0Exks54Cn8r2GdaUqBbyZFjQiZ2+AOXw8JzTqsgEJOY/vl6ODdZqySlADqV80vRMIbRRohFw85F7aCJ5pihvPOug2fKEniGFpGRWFYBo5FUd/IhY71j6ktE7SF57TQsnkna3TWgXOW3EFaO4vFm42mWZlm969LldBAoLzAvu5Esixsfc=
