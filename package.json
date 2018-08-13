@@ -14,7 +14,8 @@
     "copy:server": "ncp src/server dist/server",
     "copy:assets": "ncp src/index.html dist/index.html && ncp src/assets dist/assets",
     "build": "webpack --env.production --config config/webpack && npm run copy:server && npm run copy:assets",
-    "watch": "JARVIS_ENV=development webpack --watch --config config/webpack"
+    "watch": "JARVIS_ENV=development webpack --watch --config config/webpack",
+    "test": "echo 'Not Implemented' || true"
   },
   "engines": {
     "node": ">=8.0.0"
@@ -74,7 +75,7 @@
     "sass-loader": "^6.0.6",
     "style-loader": "^0.18.2",
     "svg-url-loader": "^2.1.1",
-    "webpack": "^3.8.1",
+    "webpack": "^3.12.0",
     "webpack-dev-middleware": "^2.0.4",
     "webpack-hot-middleware": "^2.21.0"
   },
