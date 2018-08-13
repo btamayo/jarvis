@@ -21,6 +21,9 @@ class Jarvis {
         }) is invalid. Reverting to 1337`
       );
       opts.port = 1337;
+    } else {
+      console.log(`[JARVIS]`);
+      console.dir(opts);
     }
 
     if (opts.packageJsonPath && !fs.existsSync(opts.packageJsonPath)) {
@@ -38,6 +41,7 @@ class Jarvis {
     if (process.env.JARVIS_ENV && process.env.JARVIS_ENV === "development") {
       jarvisEnv = "development";
     }
+
     this.env = {
       jarvisEnv: jarvisEnv,
       clientEnv: "development",
@@ -53,84 +57,105 @@ class Jarvis {
 
     this.pkg = importFrom(this.options.packageJsonPath, "./package.json");
   }
+
   apply(compiler) {
-    const { name, version, author: makers } = this.pkg;
-    const normalizedAuthor = parseAuthor(makers);
+    console.log(`[JARVIS] Compiler Apply Called`);
 
-    this.reports.project = { name, version, makers: normalizedAuthor };
+    compiler.apply(new webpack.ProgressPlugin((percentage, message) => {
+      this.reports.progress = {
+        percentage,
+        message
+      };
 
-    // check if the current build is production, via defined plugin
-    const definePlugin = compiler.options.plugins.find(
-      fn => fn.constructor.name === "DefinePlugin"
-    );
-
-    if (definePlugin) {
-      const pluginNodeEnv = definePlugin["definitions"]["process.env.NODE_ENV"];
-      if (pluginNodeEnv === "production") {
-        this.env.clientEnv === "production";
-      }
-    }
-
-    let jarvis;
-    let jarvisBooting;
-    let { port, host } = this.options;
-
-    const bootJarvis = () => {
-      if (jarvis || jarvisBooting) return;
-
-      jarvisBooting = true;
-      jarvis = this.server = server.init(
-        compiler,
-        this.env.jarvisEnv === "development"
-      );
-      jarvis.http.listen(port, host, _ => {
-        console.log(`[JARVIS] Starting dashboard on: http://${host}:${port}`);
-        this.env.running = true;
-        jarvisBooting = false;
-        // if a new client is connected push current bundle info
-        jarvis.io.on("connection", socket => {
-          socket.emit("project", this.reports.project);
-          socket.emit("progress", this.reports.progress);
-          socket.emit("stats", this.reports.stats);
+      if (this.env.running) {
+        this.server.io.emit("progress", {
+          percentage,
+          message
         });
-      });
-    };
-
-    if (!this.options.watchOnly && !this.env.running) {
-      bootJarvis();
-    }
-
-    compiler.plugin("watch-run", (c, done) => {
-      if (this.options.watchOnly) {
-        bootJarvis();
+      } else {
+        this.boot(compiler)
       }
-      this.env.watching = true;
-      done();
+    }))
+
+    compiler.hooks.afterEmit.tap('Jarvis', compilation => {
+      const {
+        name,
+        version,
+        author: makers
+      } = this.pkg;
+
+      const normalizedAuthor = parseAuthor(makers);
+
+      this.reports.project = {
+        name,
+        version,
+        makers: normalizedAuthor
+      };
+
+
+      // console.dir(compiler.options)
+
+      // if (compiler.options && compiler.options.mode) {
+      //   this.env.clientEnv = 'production';
+      // }
+    })
+
+    compiler.hooks.watchRun.tapAsync('Jarvis', (compiler, callback) => {
+      console.log('[JARVIS] watchRun event emitted');
+
+      if (this.options.watchOnly) {
+        this.env.watching = this.options.watchOnly;
+      }
+      callback();
     });
 
-    compiler.plugin("run", (c, done) => {
-      this.env.watching = false;
-      done();
-    });
+    compiler.hooks.run.tapAsync('Jarvis', (compiler, callback) => {
+      console.log('[JARVIS] Run event emitted');
 
-    // report the webpack compiler progress
-    compiler.apply(
-      new webpack.ProgressPlugin((percentage, message) => {
-        this.reports.progress = { percentage, message };
-        if (this.env.running) {
-          jarvis.io.emit("progress", { percentage, message });
-        }
-      })
-    );
+      callback();
+    })
 
     // extract the final reports from the stats!
-    compiler.plugin("done", stats => {
-      if (!this.env.running) return;
+    compiler.hooks.done.tap('Jarvis', stats => {
+      if (!this.env.running) {
+        console.log('[JARVIS] Jarvis is not running');
+      }
 
-      const jsonStats = stats.toJson({ chunkModules: true });
+      const jsonStats = stats.toJson({
+        chunkModules: true
+      });
+
       jsonStats.isDev = this.env.clientEnv === "development";
       this.reports.stats = reporter.statsReporter(jsonStats);
       jarvis.io.emit("stats", this.reports.stats);
+    });
+  }
+
+  boot(compiler) {
+    let {
+      port,
+      host
+    } = this.options;
+
+    if (this.started) {
+      console.log(`[JARVIS] ERROR: Already running on http://${host}:${port}`);
+      return;
+    }
+
+    this.server = server.init(
+      compiler,
+      false
+    );
+
+    this.server.http.listen(port, host, _ => {
+      console.log(`[JARVIS] Started dashboard on: http://${host}:${port}`);
+      this.env.running = true;
+      // if a new client is connected push current bundle info
+      this.server.io.on("connection", socket => {
+        socket.emit("project", this.reports.project);
+        socket.emit("progress", this.reports.progress);
+        socket.emit("stats", this.reports.stats);
+      });
     });
   }
 }
@@ -145,7 +170,11 @@ function parseAuthor(author) {
     }
   }
 
-  return { name: "", email: "", url: "" };
+  return {
+    name: "",
+    email: "",
+    url: ""
+  };
 }
 
 module.exports = Jarvis;
